@@ -3,7 +3,7 @@ from flask import Flask, jsonify
 app = Flask(__name__)
 
 # Dummy game result data
-game_result = {"Game": "5", "Winner": "390"}
+game_result = {"Game": "7", "Winner": "473"}
 
 
 @app.route("/game_result.json", methods=["GET"])
