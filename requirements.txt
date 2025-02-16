@@ -1,5 +1,3 @@
-streamlit_chatbot/streamlit_chatbot/requirements.txt
-
 streamlit
 requests
 numpy

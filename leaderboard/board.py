@@ -18,7 +18,7 @@ class Leaderboard:
                 entry["Wins"] += 1
                 break
         else:
-            leaderboard.append({"Player": player_id, "Wins": 1})
+            leaderboard.append({"Player": player_id, "Wins": 1}) # add new player
         self.save(leaderboard)
 
     def get_sorted(self):
