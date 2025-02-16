@@ -1,60 +1,73 @@
 import cv2
+import streamlit as st
+import numpy as np
+import requests
+import json
 
-stream_url = "http://192.168.4.1:81/stream"
+# Dummy web server URL (replace with actual endpoint)
+SERVER_URL = "https://192.168.1.4:80/posts"
 
-# Initialize video capture with the default camera (device 1)
-cap = cv2.VideoCapture(stream_url)
+# Load OpenCV pre-trained MobileNet SSD model for object detection
+prototxt = cv2.dnn.readNetFromCaffe(cv2.data.haarcascades + "deploy.prototxt", 
+                                    cv2.data.haarcascades + "mobilenet_iter_73000.caffemodel")
 
-# Read the first frame to serve as the background reference
-ret, first_frame = cap.read()
-if not ret:
-    print("Error: Unable to read from camera.")
-    cap.release()
-    exit()
+# Streamlit UI
+st.title("Object Detection & Bounding Box JSON Upload")
 
-# Convert first frame to grayscale and blur it
-first_gray = cv2.cvtColor(first_frame, cv2.COLOR_BGR2GRAY)
-first_gray = cv2.GaussianBlur(first_gray, (21, 21), 0)
+# Select camera or MJPEG stream
+stream_source = st.radio("Select Stream Source", ("Webcam", "MJPEG Stream"))
 
-# Set sensitivity configuration. Increase threshold to lower sensitivity.
-sensitivity_threshold = 145  # Increase from 25 to 50 (or adjust as needed)
+if stream_source == "MJPEG Stream":
+    stream_url = st.text_input("Enter MJPEG Stream URL", "http://192.168.1.4:81/stream")
 
-while True:
+frame_container = st.empty()
+
+cap = cv2.VideoCapture(0 if stream_source == "Webcam" else stream_url)
+
+while cap.isOpened():
     ret, frame = cap.read()
     if not ret:
+        st.error("Failed to grab frame")
         break
 
-    # Convert current frame to grayscale and blur it
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    gray = cv2.GaussianBlur(gray, (21, 21), 0)
+    # Convert BGR to RGB for display
+    rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-    # Compute the absolute difference between the background and current frame
-    frame_delta = cv2.absdiff(first_gray, gray)
+    # Convert frame to blob for DNN
+    blob = cv2.dnn.blobFromImage(frame, 0.007843, (300, 300), 127.5)
+    prototxt.setInput(blob)
+    detections = prototxt.forward()
 
-    # Apply thresholding with the sensitivity threshold
-    thresh = cv2.threshold(frame_delta, sensitivity_threshold, 255, cv2.THRESH_BINARY)[
-        1
-    ]
-    thresh = cv2.dilate(thresh, None, iterations=2)
+    bounding_boxes = []
 
-    # Identify contours of moving objects
-    contours, _ = cv2.findContours(
-        thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
-    )
+    # Loop through detections
+    for i in range(detections.shape[2]):
+        confidence = detections[0, 0, i, 2]
 
-    # Draw bounding boxes for contours that exceed the minimum area
-    for contour in contours:
-        if cv2.contourArea(contour) < 700:
-            continue
-        x, y, w, h = cv2.boundingRect(contour)
-        cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+        if confidence > 0.5:  # Confidence threshold
+            box = detections[0, 0, i, 3:7] * np.array([frame.shape[1], frame.shape[0], 
+                                                        frame.shape[1], frame.shape[0]])
+            (x1, y1, x2, y2) = box.astype("int")
+            bounding_boxes.append({"x1": x1, "y1": y1, "x2": x2, "y2": y2, "confidence": float(confidence)})
 
-    # Display the frame with bounding boxes
-    cv2.imshow("Camera Stream", frame)
+            # Draw bounding box on frame
+            cv2.rectangle(rgb_frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
 
-    # Press 'q' to exit the stream
-    if cv2.waitKey(1) & 0xFF == ord("q"):
+    # Display frame with bounding boxes
+    frame_container.image(rgb_frame, channels="RGB", use_column_width=True)
+
+    # Send JSON data to the dummy web server
+    if st.button("Upload JSON"):
+        json_data = json.dumps({"bounding_boxes": bounding_boxes})
+        response = requests.post(SERVER_URL, json=json_data)
+        
+        if response.status_code == 201:
+            st.success("Bounding boxes uploaded successfully!")
+        else:
+            st.error("Failed to upload data")
+
+    if st.button("Stop Stream"):
         break
 
 cap.release()
-cv2.destroyAllWindows()
+st.write("Stream stopped")
