@@ -44,13 +44,13 @@ def display_leaderboard(redis_client, leaderboard_obj):
         leaderboard_obj.register_win("191")
         set_last_game_id(redis_client, "191")
     if col2.button("Green"):
-        st.session_state.last_winner = "473"
-        leaderboard_obj.register_win("473")
-        set_last_game_id(redis_client, "473")
-    if col3.button("Blue"):
         st.session_state.last_winner = "013"
         leaderboard_obj.register_win("013")
         set_last_game_id(redis_client, "013")
+    if col3.button("Blue"):
+        st.session_state.last_winner = "473"
+        leaderboard_obj.register_win("473")
+        set_last_game_id(redis_client, "473")
 
     # Display the last winner if one exists
     if st.session_state.last_winner:

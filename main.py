@@ -35,16 +35,16 @@ def check_for_button_press(redis_client):
     # Check for a winner (set by app.py) in Redis.
     winner = get_last_game_id(redis_client)
     if winner:
-        # redis_client.delete("last_game_id")
+        redis_client.delete("last_game_id")
         return winner
     return None
 
 
 def eliminate_player(players):
-    eliminated = random.choice(players)
+    eliminated = "191"
     print(f"No button press detected. Player {eliminated} eliminated for moving.")
     play_eliminated_audio(eliminated)
-    players.remove(eliminated)
+    # players.remove(eliminated)
 
 
 def run_game(redis_client):
@@ -55,10 +55,21 @@ def run_game(redis_client):
 
     while round_count <= max_rounds:
         print(f"\n--- Round {round_count} ---")
-        green_light_phase()
-        background_phase()
-        red_light_phase()
 
+        # Green Light Phase
+        green_light_phase()
+        winner = check_for_button_press(redis_client)
+        if winner is not None:
+            break
+
+        # Background Phase
+        background_phase()
+        winner = check_for_button_press(redis_client)
+        if winner is not None:
+            break
+
+        # Red Light Phase
+        red_light_phase()
         winner = check_for_button_press(redis_client)
         if winner is not None:
             break

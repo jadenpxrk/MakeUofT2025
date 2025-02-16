@@ -4,6 +4,7 @@ from .config import get_redis_config
 
 REDIS_KEY = "leaderboard_data"
 
+
 class RedisClient:
     def __init__(self):
         config = get_redis_config()
@@ -21,3 +22,6 @@ class RedisClient:
 
     def set(self, key, value):
         self.client.set(key, value)
+
+    def delete(self, key: str) -> int:
+        return self.client.delete(key)
