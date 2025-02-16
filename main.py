@@ -8,9 +8,9 @@ from audio import (
     play_green_light_audio,
     play_red_light_audio,
 )
-from leaderboard.scraper import get_latest_game_result
 from leaderboard.redis_client import RedisClient  # import the class
 from app import get_last_game_id, set_last_game_id
+
 
 # --- Audio & Game Round Functions ---
 def green_light_phase():
@@ -18,29 +18,34 @@ def green_light_phase():
     play_green_light_audio()
     time.sleep(1)
 
+
 def background_phase():
     play_background_music()
     time.sleep(1)
+
 
 def red_light_phase():
     print("RED LIGHT! Stop moving!")
     play_red_light_audio()
     play_robot_audio()
 
+
 # --- Game State Functions ---
 def check_for_button_press(redis_client):
-    game_data = get_latest_game_result()
-    print("Scraped game_data:", game_data)
-    if game_data:
-        set_last_game_id(redis_client, game_data["Game"])
-        return game_data["Winner"]
+    # Check for a winner (set by app.py) in Redis.
+    winner = get_last_game_id(redis_client)
+    if winner:
+        # redis_client.delete("last_game_id")
+        return winner
     return None
+
 
 def eliminate_player(players):
     eliminated = random.choice(players)
     print(f"No button press detected. Player {eliminated} eliminated for moving.")
     play_eliminated_audio(eliminated)
     players.remove(eliminated)
+
 
 def run_game(redis_client):
     players = [13, 390, 191, 473]
@@ -67,14 +72,18 @@ def run_game(redis_client):
         time.sleep(2)
 
     if winner is not None:
-        print(f"Player {winner} pressed their button first and reached the finish line!")
+        print(
+            f"Player {winner} pressed their button first and reached the finish line!"
+        )
         play_winning_audio(winner)
     else:
         print("Game Over. No finish line reached this session.")
 
+
 def main():
     redis_client = RedisClient()  # create your redis client instance
     run_game(redis_client)
+
 
 if __name__ == "__main__":
     main()
