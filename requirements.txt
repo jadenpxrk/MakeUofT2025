@@ -1,6 +1,7 @@
 streamlit
 requests
 numpy
+redis
 python-dotenv
 opencv-python
 streamlit_autorefresh
