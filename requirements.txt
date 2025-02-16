@@ -3,3 +3,4 @@ requests
 numpy
 python-dotenv
 opencv-python
+streamlit_autorefresh
