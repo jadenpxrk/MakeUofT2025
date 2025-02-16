@@ -8,13 +8,13 @@ import requests
 JSON_URL = os.getenv("JSON_URL")
 
 
-def get_latest_game_result():
+def get_eliminated_player():
     """
-    Fetches the latest game result from the remote server.
+    Fetches the who got removed
     Expected JSON structure:
         {
             "Game": "1",
-            "Winner": "ID"
+            "ElIMINATED": "ID"
         }
     Returns the JSON data as a dict if successful, else None.
     """
@@ -22,7 +22,7 @@ def get_latest_game_result():
         response = requests.get(JSON_URL, timeout=5)
         response.raise_for_status()
         data = response.json()
-        if "Game" in data and "Winner" in data:
+        if "Game" in data and "ELIMINATED" in data:
             return data
     except Exception as e:
         print(f"Error fetching game result: {e}")

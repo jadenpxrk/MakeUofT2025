@@ -10,6 +10,7 @@ from audio import (
 )
 from leaderboard.redis_client import RedisClient  # import the class
 from app import get_last_game_id, set_last_game_id
+from leaderboard.scraper import get_eliminated_player
 
 
 # --- Audio & Game Round Functions ---
@@ -41,7 +42,7 @@ def check_for_button_press(redis_client):
 
 
 def eliminate_player(players):
-    eliminated = "191"
+    eliminated = get_eliminated_player()["ELIMINATED"]
     print(f"No button press detected. Player {eliminated} eliminated for moving.")
     play_eliminated_audio(eliminated)
     # players.remove(eliminated)
