@@ -3,13 +3,16 @@ import streamlit as st
 import numpy as np
 import requests
 import json
+import pytesseract  # Import pytesseract for OCR
 
 # Dummy web server URL (replace with actual endpoint)
 SERVER_URL = "https://192.168.1.4:80/posts"
 
 # Load OpenCV pre-trained MobileNet SSD model for object detection
-prototxt = cv2.dnn.readNetFromCaffe(cv2.data.haarcascades + "deploy.prototxt", 
-                                    cv2.data.haarcascades + "mobilenet_iter_73000.caffemodel")
+prototxt = cv2.dnn.readNetFromCaffe(
+    cv2.data.haarcascades + "deploy.prototxt",
+    cv2.data.haarcascades + "mobilenet_iter_73000.caffemodel",
+)
 
 # Streamlit UI
 st.title("Object Detection & Bounding Box JSON Upload")
@@ -45,13 +48,38 @@ while cap.isOpened():
         confidence = detections[0, 0, i, 2]
 
         if confidence > 0.5:  # Confidence threshold
-            box = detections[0, 0, i, 3:7] * np.array([frame.shape[1], frame.shape[0], 
-                                                        frame.shape[1], frame.shape[0]])
+            box = detections[0, 0, i, 3:7] * np.array(
+                [frame.shape[1], frame.shape[0], frame.shape[1], frame.shape[0]]
+            )
             (x1, y1, x2, y2) = box.astype("int")
-            bounding_boxes.append({"x1": x1, "y1": y1, "x2": x2, "y2": y2, "confidence": float(confidence)})
+            bounding_boxes.append(
+                {
+                    "x1": x1,
+                    "y1": y1,
+                    "x2": x2,
+                    "y2": y2,
+                    "confidence": float(confidence),
+                }
+            )
 
             # Draw bounding box on frame
             cv2.rectangle(rgb_frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+
+            # Perform OCR on the ROI inside the bounding box
+            roi = frame[y1:y2, x1:x2]
+            if roi.size > 0:
+                roi_rgb = cv2.cvtColor(roi, cv2.COLOR_BGR2RGB)
+                detected_text = pytesseract.image_to_string(roi_rgb).strip()
+                if detected_text:
+                    cv2.putText(
+                        rgb_frame,
+                        detected_text,
+                        (x1, y1 - 10),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        0.5,
+                        (255, 0, 0),
+                        2,
+                    )
 
     # Display frame with bounding boxes
     frame_container.image(rgb_frame, channels="RGB", use_column_width=True)
@@ -60,7 +88,7 @@ while cap.isOpened():
     if st.button("Upload JSON"):
         json_data = json.dumps({"bounding_boxes": bounding_boxes})
         response = requests.post(SERVER_URL, json=json_data)
-        
+
         if response.status_code == 201:
             st.success("Bounding boxes uploaded successfully!")
         else:
