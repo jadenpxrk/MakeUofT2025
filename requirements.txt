@@ -5,3 +5,5 @@ redis
 python-dotenv
 opencv-python
 streamlit_autorefresh
+mediapipe
+google-generativeai
